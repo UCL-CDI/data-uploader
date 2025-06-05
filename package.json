@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.5.5",
-    "aws-amplify": "^6.6.6",
+    "@aws-amplify/ui-react-storage": "^3.10.3",
+    "aws-amplify": "^6.15.0",
+    "exif-be-gone": "^1.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

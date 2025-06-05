@@ -1,40 +1,62 @@
-import { useEffect, useState } from "react";
-import type { Schema } from "../amplify/data/resource";
-import { generateClient } from "aws-amplify/data";
-
-const client = generateClient<Schema>();
-
+import '@aws-amplify/ui-react/styles.css';
+import { CustomFileUploader } from "./components/FileUploader";
+import outputs from "../amplify_outputs.json";
+import { Amplify } from "aws-amplify";
+import { fetchUserAttributes, UserAttributeKey, fetchAuthSession, AuthSession } from 'aws-amplify/auth';
+import { useEffect, useState } from 'react';
+import {
+  createAmplifyAuthAdapter,
+  createStorageBrowser
+} from '@aws-amplify/ui-react-storage/browser';
+import '@aws-amplify/ui-react-storage/styles.css';
+import { useAuthenticator } from '@aws-amplify/ui-react';
+ 
+Amplify.configure(outputs);
+ 
 function App() {
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
-
+  // Force remount of the entire app when this key changes
+  const [currentUser, setCurrentUser] = useState<Partial<Record<UserAttributeKey, string>>>();
+  const [session, setSession] = useState<AuthSession>();
+  const [authUsername, setAuthUsername] = useState<string | undefined>();
+  const { signOut, user } = useAuthenticator();
+ 
+  // Fetch user data when auth username changes
   useEffect(() => {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => setTodos([...data.items]),
-    });
-  }, []);
-
-  function createTodo() {
-    client.models.Todo.create({ content: window.prompt("Todo content") });
-  }
-
+    const fetchUserData = async () => {
+      if (!user.username) return;
+      const userAttributes = await fetchUserAttributes();
+      setCurrentUser(userAttributes);
+      setAuthUsername(user.username);
+      const session = await fetchAuthSession();
+      setSession(session);
+    }
+    fetchUserData();
+  }, [authUsername]);
+ 
+  const { StorageBrowser } = createStorageBrowser({
+    config: createAmplifyAuthAdapter()
+  });
+ 
   return (
-    <main>
-      <h1>My todos</h1>
-      <button onClick={createTodo}>+ new</button>
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id}>{todo.content}</li>
-        ))}
-      </ul>
-      <div>
-        🥳 App successfully hosted. Try creating a new todo.
-        <br />
-        <a href="https://docs.amplify.aws/react/start/quickstart/#make-frontend-updates">
-          Review next step of this tutorial.
-        </a>
+    <main className="p-4">
+      <div className="space-y-8">
+        <h1>{currentUser?.given_name} at {currentUser?.["custom:university"]}</h1>
+        <p>Identity ID: {session?.identityId}</p>
+        <div>
+          <h2>Upload your data here</h2>
+          <CustomFileUploader />
+          <h2>See your data here</h2>
+          <div>
+            <StorageBrowser />
+          </div>
+        </div>
+        <button onClick={() => {
+          signOut();
+          setAuthUsername(undefined);
+        }}>Sign out</button>
       </div>
-    </main>
-  );
+    </main>)
 }
-
+ 
+ 
 export default App;
