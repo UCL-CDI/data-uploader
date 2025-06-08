@@ -31,7 +31,7 @@ function App() {
       setSession(session);
     }
     fetchUserData();
-  }, [authUsername]);
+  }, [authUsername, user.username]);
  
   const { StorageBrowser } = createStorageBrowser({
     config: createAmplifyAuthAdapter()
